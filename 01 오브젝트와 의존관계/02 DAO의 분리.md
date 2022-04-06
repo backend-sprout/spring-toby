@@ -1,12 +1,15 @@
 # DAO의 분리 
 ## 관심사의 분리 
+### 변화에 어떻게 대응할 것인가 
 세상에는 변하는 것과 변하지 않는 것이 있다.    
 하지만, 객체지향의 세계에서는 모든 것이 변한다.(오브젝트에 대한 설계와 이를 구현한 코드)    
  
 소프트웨어 개발에서 끝이라는 개념은 없다.    
 사용자의 비즈니스 프로세스와 그에 따른 요구사항은 끊임없이 바뀌고 발전한다.   
 **그래서 개발자가 객체를 설계할 때 가장 염두에 둬야 할 사항은 바로 미래의 변화를 어떻게 대비할 것인가이다.**     
- 
+
+### 변화에서의 관심사
+
 지혜로운 개발자는 오늘 이 시간에 미래를 위해 설계하고 개발한다.     
 그리고 그 덕분에 미래에 닥칠지도 모르는 거대한 작업에 대한 부담과     
 변경에 따른 엄청난 스트레스, 그로인해 발생하는 고객과의 사이에서 또 개발팀 내에서의 갈등을 최소화할 수 있다. 
@@ -25,7 +28,9 @@
 그러나 문제는, **변화는 대체로 집중된 한가지 관심에 대해 일어나지만 그에 따른 작업은 한 곳에 집중되지 않는 경우가 많다는 점이다.**   
 변화가 한번에 한가지 관심에 집중되서 일어난다면, **우리가 준비해야할 일은 한가지 관심이 한 군데에 집중되게 하는 것이다.**     
 **즉, 관심이 같은 것끼리는 모으고, 관심이 다른 것은 따로 떨어져 있게 하는 것이다.**   
-  
+
+### 관심사 분리의 핵심  
+
 프로그래밍의 기초 개념중에 **관심사의 분리**라는 게 있다.      
 **관심이 같은 것끼리는 하나의 객체 안으로 또는 친한 객체로 모이게 하고       
 관심이 다른 것은 가능한 한 따로 떨어져서 서로 영향을 주지 않도록 분리하는 것이라 생각할 수 있다.**     
@@ -36,8 +41,112 @@
 
 ## 커넥션 만들기의 추출 
 
+```java
+    public void add(User user) throws SQLException, ClassNotFoundException {
+    	   // 1. 커넥션 가져오기
+        Class.forName("org.postgresql.Driver");
+
+        String user = "postgres";
+        String password = "password";
+
+        Connection c = DriverManager.getConnection(
+                "jdbc:postgresql://localhost/toby_spring"
+                , user
+                , password
+        );
 
 
+        // 2. SQL 문장을 담을 Statement를 만들고 실행하기
+        PreparedStatement ps = c.prepareStatement(
+                "insert into users(id, name, password) values (?, ?, ?)"
+        );
+        ps.setString(1, user.getId());
+        ps.setString(2, user.getName());
+        ps.setString(3, user.getPassword());
+
+        ps.executeUpdate();
+
+
+        // 3. 리소스 반납하기
+        ps.close();
+        c.close();
+    }
+```   
+총 3가지의 관심사가 나온다.
+
+* DB와 연결하기 위한 커넥션을 가져오는 것
+* DB에 보낼 SQL 문장을 담을 Statement를 만들고 실행하는 것
+* 공유 리소스를 시스템에 돌려주는 것
+
+### 중복 코드의 메서드 추출 
+     
+`DB와 연결하기 위한 커넥션을 가져오는 것`과 관련된 코드들은 모든 메서드에 존재할 것이다.         
+**만약 이런 메서드가 100개, 1000개가 넘게 있으며 이들을 유지보수 관리해야 할 일이 생긴다면?**        
+즉, 이렇게 중복된 관심사 코드가 발생하면, **변경이 일어날 때 엄청난 고통을 일으킬 수 있으므로 중복된 코드를 메소드로 추출하자.**  
+
+```java
+    public void add(User user) throws SQLException, ClassNotFoundException {
+        // 1.2.2 중복 코드의 메소드 추출
+        Connection c = getConnection();
+
+        PreparedStatement ps = c.prepareStatement(
+                "insert into users(id, name, password) values (?, ?, ?)"
+        );
+        ps.setString(1, user.getId());
+        ps.setString(2, user.getName());
+        ps.setString(3, user.getPassword());
+
+        ps.executeUpdate();
+
+        ps.close();
+        c.close();
+    }
+    
+    public User get(String id) throws SQLException, ClassNotFoundException {
+        // 1.2.2 중복 코드의 메소드 추출
+        Connection c = getConnection();
+
+        PreparedStatement ps = c.prepareStatement(
+                "select * from users where id = ?"
+        );
+        ps.setString(1, id);
+
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+
+        User user = new User();
+        user.setId(rs.getString("id"));
+        user.setName(rs.getString("name"));
+        user.setPassword(rs.getString("password"));
+
+        rs.close();
+        ps.close();
+        c.close();
+
+        return user;
+    }
+    
+    // 커넥션 가져오기 관심사
+    public Connection getConnection() throws ClassNotFoundException, SQLException {
+        Class.forName("org.postgresql.Driver");
+
+        String user = "postgres";
+        String password = "password";
+
+        Connection c = DriverManager.getConnection(
+                "jdbc:postgresql://localhost/toby_spring"
+                , user
+                , password
+        );
+    }
+```
+    
+이제 로그인 정보가 변경되더라도 `getConnection()` 이라는 한 메서드의 코드만 수정하면 된다.          
+관심의 종류에 따라 코드를 구부해놓았기 때문에       
+**한 가지 관심에 대한 변경이 일어날 경우 그 관심이 집중되는 부분의 코드만 수정하면 된다.**      
+관심이 다른 코드가 있는 메서드에는 영향을 주지 않을뿐더러, 관심 내용이 독립적으로 존재하므로 수정도 간단해졌다.   
+
+### 변경 사항에 대한 검증: 리팩토링과 테스트 
 
 
 
