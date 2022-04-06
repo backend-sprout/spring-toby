@@ -157,7 +157,114 @@
 메서드로 중복된 코드를 뽑아내는 것을 리팩토링에서는 **메서드 추출**이라고 한다.      
 
 ## DB 커넥션 만들기의 독립 
+
+아주 초보적인 관심사의 분리 작업이지만, 메서드 추출만으로도 변화에 좀 더 유연하게 대처할 수 있는 코드를 만들었다.  
+이번에 좀 더 나아가서 변화에 대응하는 수준이 아니라, 아에 변화를 반기는 DAO를 만들어 보자.     
+  
 ### 상속을 통한 확장 
+
+![image](https://user-images.githubusercontent.com/50267433/161970186-7057201d-0d07-4b10-adf8-ec5268146f3b.png)
+
+**UserDao - abstract**
+```java
+public abstract class UserDao {
+    public void add(User user) throws SQLException, ClassNotFoundException {
+        Connection c = getConnection();
+
+        PreparedStatement ps = c.prepareStatement(
+                "insert into users(id, name, password) values (?, ?, ?)"
+        );
+        ps.setString(1, user.getId());
+        ps.setString(2, user.getName());
+        ps.setString(3, user.getPassword());
+
+        ps.executeUpdate();
+
+        ps.close();
+        c.close();
+    }
+
+    public User get(String id) throws SQLException, ClassNotFoundException {
+        Connection c = getConnection();
+
+        PreparedStatement ps = c.prepareStatement(
+                "select * from users where id = ?"
+        );
+        ps.setString(1, id);
+
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+
+        User user = new User();
+        user.setId(rs.getString("id"));
+        user.setName(rs.getString("name"));
+        user.setPassword(rs.getString("password"));
+
+        rs.close();
+        ps.close();
+        c.close();
+
+        return user;
+    }
+
+    public abstract Connection getConnection() throws ClassNotFoundException, SQLException;
+}
+```
+
+UserDao 를 추상 클래스로 두었다.    
+   
+**NUserDao - Concrete**
+```java
+public class NUserDao extends UserDao{
+    @Override
+    public Connection getConnection() throws ClassNotFoundException, SQLException {
+        Class.forName("org.postgresql.Driver");
+
+        String user = "postgres";
+        String password = "password";
+
+        Connection c = DriverManager.getConnection(
+                "jdbc:postgresql://localhost/toby_spring"
+                , user
+                , password
+        );
+
+        return c;
+    }
+}
+```
+
+**DUserDao - Concrete**
+
+```java
+public class DUserDao extends UserDao {
+    @Override
+    public Connection getConnection() throws ClassNotFoundException, SQLException {
+        Class.forName("org.postgresql.Driver");
+
+        String user = "postgres";
+        String password = "password";
+
+        Connection c = DriverManager.getConnection(
+                "jdbc:postgresql://localhost/toby_spring"
+                , user
+                , password
+        );
+
+        return c;
+    }
+}
+```
+
+관시사를 분리한 영역만 별도의 클래스로 빼서 이를 구현하도록 했다.       
+물론 위 같은 코드는 인터페이스로 분리하고 컴포지션을 사용할 수도 있다.     
+우리는 상속과 구현을 통해 각각의 요청에 맞는 Dao를 불러다 사용만 하면 된다.      
+더불어, 새로운 요구사항이 들어오면 이에 맞는 Dao를 구현해도 된다.     
+  
+이렇게 슈퍼 클래스에서 기본적인 로직의 흐름을 만들고,    
+그 기능의 일부를 추상 메서드나 오버라이딩이 가능한 protected 메서드등으로 만든 뒤     
+서브 클래스에서 이런 메서드를 필요에 맞게 구현해서 사용하도록 하는 방법을 디자인 패턴에서 **템플릿 메서드 패턴**이라고 한다.  
+
 
 
 
