@@ -7,4 +7,4 @@
 
 # 추가로 
 
-요약 정리와, 이미지에 대해서는 [Jake Seo 님의 블로그](https://velog.io/@jakeseo_me)를 참고했습니다.  
+요약 정리와 이미지에 대해서는 [Jake Seo 님의 블로그](https://velog.io/@jakeseo_me)를 참고했습니다.  
