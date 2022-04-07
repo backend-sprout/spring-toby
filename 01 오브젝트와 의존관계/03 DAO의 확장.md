@@ -159,10 +159,23 @@ public class DConnectionMaker implements SimpleConnectionMaker {
 객체 생성을 담당하는 것은 하나의 책임을 가지는 것이다.    
 구체적인 클래스 타입을 UserDAO가 알게 되는 것은 물론, 해당 타입 구현체를 생성하고 사용하는 2가지 책임을 한번에 가지는 것이다.   
 **만약, 다른 하위 클래스 타입을 사용하고자 한다면 UserDAO의 코드가 변동되어야 한다는 뜻이다.**        
-    
+
+![image (4)](https://user-images.githubusercontent.com/50267433/162191143-957be917-ff31-4a7b-bf80-9665674d6247.png)
+
 이를 해결하는 방법은 아주 간단한다.       
 **객체 생성을 담당하는 책임을 다른 클래스에 넘기면 된다.**     
 
+```java
+
+public class Main {
+   public static void main(String[] args) {
+      final UserDaoOne = new UserDao(new NConnectionMaker()); 
+      final UserDaoTwo = new UserDao(new DConnectionMaker());    
+   } 
+}
+```
+
+**UseDao**
 ```java
 public class UserDao {
 
@@ -200,6 +213,25 @@ public class UserDao {
 [클린 코드](https://github.com/kwj1270/TIL_CleanCode/blob/master/11%20%EC%8B%9C%EC%8A%A4%ED%85%9C.md#%ED%8C%A9%ED%86%A0%EB%A6%AC)에서 언급하기를,   
 객체 생성을 담당하는 별도의 요소에게 책임을 맡기고, 해당 객체를 주입받아 사용하는 것을 추천한다.          
 이와 같은 구조로 가져갈 경우, 객체 사용에 대한 책임만 지게 되어 변경의 여지를 줄일 수 있고 테스트에 용이해진다는 장점이 있다.        
+
+## 원칙과 패턴 
+ 
+앞선 예제에서 적용한 원칙과 패턴에 대해서 정리하고자 한다.   
+
+### OCP(개발 폐쇄 원칙)
+ 
+OCP(개발 폐쇄 원칙) 은 깔끔한 설계를 위해 적용 가능한 객체지향 설계 원칙 중의 하나다.(SOLID).       
+`클래스나 모듈은 확장에는 열려 있어야 하고 변경에는 닫혀 있어야 한다.`           
+즉, 핵심 기능을 구현한 코드는 그런 변화에 영향을 받지 않고 유지할 수 있어야 한다는 의미이다.       
+
+잘 설계된 객체지향 클래스의 구조를 살펴보면 바로 이 개방 폐쇄 원칙을 아주 잘 지키고 있다.    
+인터페이스를 사용해 확장 기능을 정의한 대부분의 API는 바로 이 개발 폐쇄 원칙을 지키고 있다고 보면 된다.   
+  
+### 높은 응집도와 낮은 결합도  
+
+#### 높은 응집도 
+#### 낮은 결합도 
+
 
 
 
