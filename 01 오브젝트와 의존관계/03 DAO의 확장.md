@@ -228,16 +228,66 @@ OCP(개발 폐쇄 원칙) 은 깔끔한 설계를 위해 적용 가능한 객체
 인터페이스를 사용해 확장 기능을 정의한 대부분의 API는 바로 이 개발 폐쇄 원칙을 지키고 있다고 보면 된다.   
   
 ### 높은 응집도와 낮은 결합도  
+      
+소프트웨어의 고전적인 원리로도 설명이 가능하다.       
+응집도가 높다는 것은 **하나의 모듈, 클래스가 하나의 책임 또는 관심사에 집중되어 있다는 뜻이다.**         
+불필요하거나 직접 관련이 없는 외부의 관심과 책임이 얽혀 있지 않으며, 하나의 공통 관심사는 한 클래스에 모여 있다.     
+**높은 응집도는 클래스 레벨뿐 아니라, 패키지, 컴포넌트, 모듈에 이르기가지 그 대상의 크기가 달라져도 동일한 원리로 적용될 수 있다.**     
 
-#### 높은 응집도 
+#### 높은 응집도  
+
+* 응집도가 높다 === 변화가 일어날 때 해당 모듈에서 변하는 부분이 크다.   
+    
+변경이 일어날때 모듈의 많은 뿐이 함께 바꾸니다면 응집도가 높다고 말할 수 있다.          
+만약 모듈의 일부분에만 변경이 일어나도 된다면,     
+모듈 전체에서 어떤 부분이 바뀌어야 하는지 파악해야 하고,       
+또 그 변경으로 인해 바뀌지 않는 부분에는 다른 영향을 미치지 않는지 확인해야하는 이중 부담이 생긴다.   
+
 #### 낮은 결합도 
+  
+낮은 결합도는 높은 응집도보다 더 민감한 원칙이다.    
+책임과 관심사가 다른 오브젝트 또는 모듈과는 느슨하게 연결된 형태(낮은 결합도)를 유지하는 것이 바람직하다.     
+   
+느슨한 연결은    
+**관계를 유지하는데 필요한 최소한의 방법만 `간접적인 형태`로 제공하고 나머지는 서로 독립적이고 알 필요도 없게 만들어주는 것이다.**       
+결합도가 낮아지면 변화에 대응하는 속도가 높아지고, 구성이 깔끔해지고 확장하기에도 매우 편리하다.   
 
+### 전략 패턴  
 
+```java
+public class UserDao {
 
+    private final SimpleConnectionMaker connectMakger;
 
+    public UserDao(final ConnectionMaker connectMakger) {
+        this.connectMakger = connectMakger;
+    }
 
+    public void add(User user) throws SQLException, ClassNotFoundException {
+        Connection c = simpleConnectionMaker.makeNewConnection();
 
+        PreparedStatement ps = c.prepareStatement("insert into users(id, name, password) values (?, ?, ?)");
+        
+        ps.setString(1, user.getId());
+        ps.setString(2, user.getName());
+        ps.setString(3, user.getPassword());
 
+        ps.executeUpdate();
 
+        ps.close();
+        c.close();
+    }
+    
+    ...
+}
+```
 
-
+위 구조는 디자인패턴의 시각으로 보자면 `전략 패턴`에 해당한다고 볼 수 있다.    
+   
+전략 패턴은 자신의 기능 맥락에서   
+필요에 따라 변경이 필요한 알고리즘을 인터페이스를 통해 통째로 외부로 분리시키고      
+이를 구현한 구체적인 구현체의 알고리즘에 따라 바꿔서 사용할 수 있는 디자인 패턴을 의미한다.    
+(알고리즘이란 것은 독립적으로 분리가 가능한 기능을 의미한다.)    
+ 
+NConnectionMaker 는 postgreSql 방식이지만, DConnectionMaker 는 mysql 방식이다.       
+이렇듯 각각의 전략에 맞춰서 기능을 달리 실행하고자 할 때 주로 사용한다.   
